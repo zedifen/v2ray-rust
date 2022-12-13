@@ -2067,6 +2067,7 @@ dependencies = [
  "crc32fast",
  "domain_matcher",
  "env_logger",
+ "foreign-types-shared",
  "futures-util",
  "generic-array",
  "gentian",
