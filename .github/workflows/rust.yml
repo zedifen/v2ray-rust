@@ -26,12 +26,16 @@ on:
   # For test
   workflow_dispatch:
 
+concurrency: 
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   RUST_BACKTRACE: 1
 
 jobs:
   build:
+    timeout-minutes: 30
     env:
       CARGO_TERM_COLOR: always
       PROTOC_NO_VENDOR: true
@@ -86,10 +90,10 @@ jobs:
 
     - name: Get rust version
       id: rust-version
-      run: echo "::set-output name=version::$(rustc --version)"
+      run: echo "version=$(rustc --version)" >> $GITHUB_OUTPUT
 
     - name: Cache cargo index
-      uses: actions/cache@v3.0.11
+      uses: actions/cache@v3.2.3
       with:
         path: ~/.cargo/registry/index
         key: index-${{ runner.os }}-${{ github.run_number }}
@@ -100,7 +104,7 @@ jobs:
           #      run: cargo generate-lockfile
       
     - name: Cache cargo registry
-      uses: actions/cache@v3.0.11
+      uses: actions/cache@v3.2.3
       with:
         path: ~/.cargo/registry/cache
         key: registry-${{ runner.os }}-${{ steps.rust-version.outputs.version }}-${{ hashFiles('Cargo.lock') }}
@@ -109,7 +113,7 @@ jobs:
       run: cargo fetch
     
     - name: Cache target directory
-      uses: actions/cache@v3.0.11
+      uses: actions/cache@v3.2.3
       with:
         path: target
         key: cache-target-${{ runner.os }}-${{ steps.rust-version.outputs.version }}-${{ hashFiles('Cargo.lock') }}
@@ -125,28 +129,28 @@ jobs:
       run: |
         cargo test --release --target=${{matrix.config.target_triple}} 
         
-    - uses: robinraju/release-downloader@v1.6
+    - uses: robinraju/release-downloader@v1.7
       with:
         repository: "v2fly/geoip"
         latest: true
         fileName: "geoip.dat"
         token: ${{ secrets.GITHUB_TOKEN }}
 
-    - uses: robinraju/release-downloader@v1.6
+    - uses: robinraju/release-downloader@v1.7
       with:
         repository: "v2fly/geoip"
         latest: true
         fileName: "geoip.dat.sha256sum"
         token: ${{ secrets.GITHUB_TOKEN }}
 
-    - uses: robinraju/release-downloader@v1.6
+    - uses: robinraju/release-downloader@v1.7
       with:
         repository: "v2fly/domain-list-community"
         latest: true
         fileName: "dlc.dat.sha256sum"
         token: ${{ secrets.GITHUB_TOKEN }}
 
-    - uses: robinraju/release-downloader@v1.6
+    - uses: robinraju/release-downloader@v1.7
       with:
         repository: "v2fly/domain-list-community"
         latest: true
@@ -176,7 +180,7 @@ jobs:
     - name: Get the version
       if: github.event_name == 'release' && matrix.config.has_release
       id: get_version
-      run: echo ::set-output name=VERSION::$(echo $GITHUB_REF | cut -d / -f 3)
+      run: echo VERSION=$(echo $GITHUB_REF | cut -d / -f 3) >> $GITHUB_OUTPUT
     
     - name: Upload to GitHub Release
       uses: svenstaro/upload-release-action@v2
@@ -187,4 +191,3 @@ jobs:
         asset_name: v2ray-rust-${{ steps.get_version.outputs.VERSION }}-${{ matrix.config.artifact }}.7z
         tag: ${{ github.ref }}
         overwrite: true
-
