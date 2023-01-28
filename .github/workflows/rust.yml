@@ -83,12 +83,12 @@ jobs:
       run: |
         brew install coreutils
 
-    - uses: Swatinem/rust-cache@v2
-
     - name: Install Rust (rustup)
       shell: bash
       run: rustup update ${{ matrix.config.rust }} && rustup default ${{ matrix.config.rust }}
       
+    - uses: Swatinem/rust-cache@v2
+
     - run: rustup target add ${{ matrix.config.target_triple }}
 
     - name: Install Protoc
