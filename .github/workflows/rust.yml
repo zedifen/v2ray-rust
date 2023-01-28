@@ -26,7 +26,7 @@ on:
   # For test
   workflow_dispatch:
 
-concurrency:
+concurrency: 
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/dev' }}
 
@@ -39,6 +39,7 @@ jobs:
     env:
       CARGO_TERM_COLOR: always
       PROTOC_NO_VENDOR: true
+      RELEASE_DIR: ./release-tmp
     name: '${{ matrix.config.name }}'
     runs-on: ${{ matrix.config.os }}
     strategy:
@@ -66,7 +67,7 @@ jobs:
             has_release: true,
             target_triple: x86_64-apple-darwin
           }
-          
+
     steps:
     - name: Set up NASM
       uses: ilammy/setup-nasm@v1.4.0
@@ -78,9 +79,12 @@ jobs:
       run: |
         brew install coreutils
 
+    - uses: Swatinem/rust-cache@v2
+
     - name: Install Rust (rustup)
-      run: rustup update ${{ matrix.config.rust }} --no-self-update && rustup default ${{ matrix.config.rust }}
       shell: bash
+      run: rustup update ${{ matrix.config.rust }} && rustup default ${{ matrix.config.rust }}
+      
     - run: rustup target add ${{ matrix.config.target_triple }}
 
     - name: Install Protoc
@@ -88,37 +92,6 @@ jobs:
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Get rust version
-      id: rust-version
-      run: echo "version=$(rustc --version)" >> $GITHUB_OUTPUT
-
-    - name: Cache cargo index
-      uses: actions/cache@v3.2.3
-      with:
-        path: ~/.cargo/registry/index
-        key: index-${{ runner.os }}-${{ github.run_number }}
-        restore-keys: |
-          index-${{ runner.os }}-
-
-          #    - name: Create lockfile
-          #      run: cargo generate-lockfile
-      
-    - name: Cache cargo registry
-      uses: actions/cache@v3.2.3
-      with:
-        path: ~/.cargo/registry/cache
-        key: registry-${{ runner.os }}-${{ steps.rust-version.outputs.version }}-${{ hashFiles('Cargo.lock') }}
-
-    - name: Fetch dependencies
-      run: cargo fetch
-    
-    - name: Cache target directory
-      uses: actions/cache@v3.2.3
-      with:
-        path: target
-        key: cache-target-${{ runner.os }}-${{ steps.rust-version.outputs.version }}-${{ hashFiles('Cargo.lock') }}
-
-        
     - name: Build
       shell: bash
       run: |
@@ -158,24 +131,24 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
 
 
-    - name: Add geoip,geosite to release
+    - name: Add geoip, geosite to release
       shell: bash
       run: |
         mkdir release-tmp
-        cp ${GITHUB_WORKSPACE}/README.md ./release-tmp/README.md
-        cp ${GITHUB_WORKSPACE}/LICENSE ./release-tmp/LICENSE
-        cat dlc.dat.sha256sum | sha256sum --check --status
-        cat geoip.dat.sha256sum | sha256sum --check --status
-        mv dlc.dat ./release-tmp/geosite.dat
-        mv geoip.dat ./release-tmp/
-        cp ./target/${{matrix.config.target_triple}}/release/v2ray-rust ./release-tmp/
+        cp ${GITHUB_WORKSPACE}/README.md $RELEASE_DIR/README.md
+        cp ${GITHUB_WORKSPACE}/LICENSE $RELEASE_DIR/LICENSE
+        sha256sum dlc.dat.sha256sum --check --status
+        sha256sum geoip.dat.sha256sum --check --status
+        mv dlc.dat $RELEASE_DIR/geosite.dat
+        mv geoip.dat $RELEASE_DIR/
+        cp ./target/${{matrix.config.target_triple}}/release/v2ray-rust $RELEASE_DIR
     
     
     - name: Upload a Build Artifact
       uses: actions/upload-artifact@v3
       with:
-        name: v2ray-rust-${{ github.sha }}-${{ matrix.config.artifact }}.7z
-        path: release-tmp
+        name: v2ray-rust-${{ github.sha }}-${{ matrix.config.artifact }}
+        path: ${{ env.RELEASE_DIR }}
         
     - name: Get the version
       if: github.event_name == 'release' && matrix.config.has_release
@@ -187,7 +160,7 @@ jobs:
       if: github.event_name == 'release' && matrix.config.has_release
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: v2ray-rust.7z
-        asset_name: v2ray-rust-${{ steps.get_version.outputs.VERSION }}-${{ matrix.config.artifact }}.7z
+        file: v2ray-rust.zip
+        asset_name: v2ray-rust-${{ steps.get_version.outputs.VERSION }}-${{ matrix.config.artifact }}
         tag: ${{ github.ref }}
         overwrite: true
