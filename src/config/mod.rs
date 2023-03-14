@@ -276,8 +276,10 @@ impl Config {
         let mut file = File::open(filename)?;
         let mut config_string = String::new();
         file.read_to_string(&mut config_string)?;
-        let config = toml::from_str(&config_string)?;
-        Ok(config)
+        match toml::from_str(&config_string) {
+            Ok(config) => Ok(config),
+            Err(e) => panic!("{e}") /*Err(io::Error::new(io::ErrorKind::InvalidData, e.message()))*/,
+        }
     }
     fn build_inner_map<'a>(&'a self) -> io::Result<HashMap<String, ChainStreamBuilder>> {
         // tag->(protocol idx, idx of protocol vec)
