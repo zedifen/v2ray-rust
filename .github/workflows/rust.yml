@@ -84,7 +84,7 @@ jobs:
 
     - name: Install Rust (rustup)
       run: rustup update ${{ matrix.config.rust }} --no-self-update && rustup default ${{ matrix.config.rust }}
-      shell: bash
+
     - run: rustup target add ${{ matrix.config.target_triple }}
 
     - name: Install Protoc
@@ -124,12 +124,10 @@ jobs:
 
         
     - name: Build
-      shell: bash
       run: |
         cargo build --release --target=${{matrix.config.target_triple}} 
       
     - name: Run tests
-      shell: bash
       run: |
         cargo test --release --target=${{matrix.config.target_triple}} 
         
