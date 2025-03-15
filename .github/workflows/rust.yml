@@ -83,7 +83,7 @@ jobs:
         brew install coreutils
 
     - name: Install Rust (rustup)
-      run: rustup update ${{ matrix.config.rust }} --no-self-update && rustup default ${{ matrix.config.rust }}
+      run: rustup update ${{ matrix.config.rust }} && rustup default ${{ matrix.config.rust }}
 
     - run: rustup target add ${{ matrix.config.target_triple }}
 
