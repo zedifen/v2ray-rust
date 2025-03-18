@@ -70,6 +70,13 @@ jobs:
             has_release: true,
             target_triple: x86_64-apple-darwin
           }
+        - {
+            name: "macOS-aarch64", artifact: "macOS-aarch64",
+            os: macos-latest,
+            rust: stable,
+            has_release: true,
+            target_triple: aarch64-apple-darwin
+          }
           
     steps:
     - name: Set up NASM
